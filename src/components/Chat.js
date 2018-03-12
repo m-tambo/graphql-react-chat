@@ -2,7 +2,7 @@ import React, { Component } from 'react'
 import '../styles/Chat.css'
 import ChatInput from './ChatInput'
 import ChatMessages from './ChatMessages'
-import { graphql } from 'react-apollo'
+import { graphql, compose } from 'react-apollo'
 import gql from 'graphql-tag'
 
 class Chat extends Component {
@@ -29,10 +29,13 @@ class Chat extends Component {
   }
 
   _onSend = () => {
-    console.log(`Send: ${this.state.message}`)
-    const newMessages = this.state.allMessages
-    newMessages.push({ text: this.state.message })
-    this.setState({allMessages: newMessages})
+    console.log(`Sending: ${this.state.message}`)
+    this.props.createMessageMutation({
+      variables: {
+        text: this.state.message,
+        sentById: this.props.userId
+      }
+    })
   }
 
   _resetText = () => {
@@ -70,5 +73,22 @@ const ALL_MESSAGES_QUERY = gql`
     }
   }
 `
+const CREATE_MESSAGE_MUTATION = gql`
+  mutation CreateMessageMutation($text: String!, $sentById: ID!) {
+    createMessage(text: $text, sentById: $sentById) {
+      id
+      text
+      createdAt
+      sentBy {
+        id
+        name
+      }
+    }
+  }
+`
 
-export default graphql(ALL_MESSAGES_QUERY, {name: 'allMessagesQuery'})(Chat)
+
+export default compose(
+  graphql(ALL_MESSAGES_QUERY, {name: 'allMessagesQuery'}),
+  graphql(CREATE_MESSAGE_MUTATION, {name: 'createMessageMutation'})
+)(Chat)
