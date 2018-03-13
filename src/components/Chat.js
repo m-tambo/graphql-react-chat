@@ -5,7 +5,40 @@ import ChatMessages from './ChatMessages'
 import { graphql, compose } from 'react-apollo'
 import gql from 'graphql-tag'
 
+const NEW_MESSAGE_SUBSCRIPTION = gql`
+  subscription NewMessageSubscription {
+    Message(filter:{
+      mutation_in: [CREATED]
+    }) {
+      node {
+        id
+        text
+        createdAt
+        sentBy {
+          id
+          name
+        }
+      }
+    }
+  }
+`
+
 class Chat extends Component {
+
+  componentDidMount() {
+    this.createMessageSubscription = this.props.allMessagesQuery.subscribeToMore({
+      document: NEW_MESSAGE_SUBSCRIPTION,
+      updateQuery: (previousState, {subscriptionData}) => {
+        console.log(`Received Message: ${subscriptionData.Message.node.text}`)
+        const newMessage = subscriptionData.Message.node
+        const messages = previousState.allMessages.concat([newMessage])
+        return {
+          allMessages: messages
+        }
+      },
+      onError: (err) => console.error(err)
+    })
+  }
 
   state = {
     message: ''
@@ -86,7 +119,6 @@ const CREATE_MESSAGE_MUTATION = gql`
     }
   }
 `
-
 
 export default compose(
   graphql(ALL_MESSAGES_QUERY, {name: 'allMessagesQuery'}),
